@@ -21,7 +21,8 @@ namespace HalfGripGrenade
 	/// <para><b>What the others see</b> is sent here. While a grenade of ours is in the air, its place and speed go out fifteen times a
 	/// second (unreliable); when it goes off, where (reliable), also when it goes off in our car. The other players draw a
 	/// <see cref="Ghost"/> grenade that hisses and follows those reports, and set off the explosion's look and sound, with no damage: the
-	/// damage was already done by the thrower.</para>
+	/// damage was already done by the thrower. The blast also carries the thrower's radii, and each machine shoves the bodies it simulates
+	/// itself (its own car, the host's real AI cars) with <see cref="Blast.ShoveFromAfar"/>; Multiplayer sends where they went.</para>
 	/// </summary>
 	internal static class GrenadeNet
 	{
