@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Draws the mod's pictures with its own drawing code outside the game. How to run it: see Program.cs. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>CS0436;CS1701;CS1702</NoWarn>
+    <Refs Condition="'$(Refs)' == ''">$(MSBuildThisFileDirectory)../../../HalfGripRefs</Refs>
+    <Src>$(MSBuildThisFileDirectory)../../Grenade/src</Src>
+    <Managed>$(Refs)/game/HalfGrip_Data/Managed</Managed>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Only the plain pixel-array drawing (Color32 and Mathf are managed code in UnityEngine.CoreModule) and the throw arithmetic. -->
+    <Compile Include="$(Src)/Art.cs;$(Src)/Throw.cs;Program.cs;Png.cs" />
+    <Reference Include="$(Managed)/UnityEngine.CoreModule.dll" />
+  </ItemGroup>
+</Project>
