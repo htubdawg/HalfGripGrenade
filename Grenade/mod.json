@@ -1,7 +1,7 @@
 {
   "id": "grenade",
   "name": "Grenade",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "Claude - Oretsej",
   "description": "Hand grenades in the gun slot: three on the dash, no gun by the visor. Pull a pin with the cockpit hand, then flick the grenade out of the car: up throws it ahead, down tosses it back. 80 damage, and no holding the spoon.",
   "icon": "icon.png",

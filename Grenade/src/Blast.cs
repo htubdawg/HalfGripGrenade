@@ -85,7 +85,7 @@ namespace HalfGripGrenade
 			body.AddExplosionForce(body.mass * Knock * share * 2f, at, reach, 0.5f, ForceMode.Impulse);
 		}
 
-		private static void Shake(Vector3 at)
+		internal static void Shake(Vector3 at)
 		{
 			if (Shaker.instance == null)
 			{
@@ -115,6 +115,10 @@ namespace HalfGripGrenade
 			if (damage > 0f && car != null && car.carLink != null)
 			{
 				car.carLink.TakeCrashDamage(damage, true, DamageKind.Crash);
+			}
+			if (car != null)
+			{
+				GrenadeNet.SendBlast(0, car.transform.position + Vector3.up * 1.5f, true); // the others see our car go bang
 			}
 			TextController.EnqueueRandomText(1.2f, "OOPS", "IN THE CAR!", "THROW IT!");
 			Mod.Info($"Grenade: went off in the car{(footwell ? " (in the footwell)" : "")} for {damage:0}");

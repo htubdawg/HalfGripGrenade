@@ -13,6 +13,14 @@ namespace HalfGripGrenade
 
 		private void Update()
 		{
+			try
+			{
+				GrenadeNet.Tick();
+			}
+			catch (System.Exception e)
+			{
+				Mod.Log.LogWarning("Grenade: multiplayer update failed: " + e.Message);
+			}
 			if (Time.unscaledTime < next)
 			{
 				return;
@@ -322,7 +330,7 @@ namespace HalfGripGrenade
 			return m;
 		}
 
-		private static void EnsureSprites()
+		internal static void EnsureSprites()
 		{
 			float ppu = 1f / Texel;
 			// Every part on the same canvas with the same pivot, the foot of the body, so they line up wherever they are put.

@@ -25,6 +25,8 @@ namespace HalfGripGrenade
 		private static readonly RaycastHit[] hits = new RaycastHit[16];
 		private static Mesh mesh;
 
+		/// <summary>This grenade's number in <see cref="GrenadeNet"/>'s messages, so the other players' ghost of it can be told apart.</summary>
+		internal int NetId;
 		private Vector3 velocity;
 		private float fuse;
 		private float gravity;
@@ -33,6 +35,9 @@ namespace HalfGripGrenade
 		private float spin;
 		private bool rolling;
 		private float lastBounce;
+
+		internal static IReadOnlyList<Thrown> All => all;
+		internal Vector3 Velocity => velocity;
 
 		/// <summary>
 		/// Throws a grenade out of the player's car for a flick of <paramref name="flick"/> screen heights a second let go at
@@ -104,7 +109,8 @@ namespace HalfGripGrenade
 			grenade.mask = HitMask();
 			grenade.spinAxis = Random.onUnitSphere;
 			grenade.spin = Random.Range(400f, 800f);
-			grenade.Dress();
+			grenade.NetId = GrenadeNet.NewId();
+			Dress(go);
 			all.Add(grenade);
 		}
 
@@ -123,9 +129,13 @@ namespace HalfGripGrenade
 			return mask;
 		}
 
-		/// <summary>The model: the grenade's own pixel art, extruded, twice, crossed, so it looks solid from any side as it tumbles.</summary>
-		private void Dress()
+		/// <summary>
+		/// The model: the grenade's own pixel art, extruded, twice, crossed, so it looks solid from any side as it tumbles; and the hiss.
+		/// Also dresses other players' grenades (<see cref="Ghost"/>), on a machine that may have no grenades fitted.
+		/// </summary>
+		internal static void Dress(GameObject go)
 		{
+			Cockpit.EnsureSprites();
 			Texture2D texture = Cockpit.BodySprite != null ? Cockpit.BodySprite.texture : null;
 			if (texture == null)
 			{
@@ -139,13 +149,13 @@ namespace HalfGripGrenade
 			for (int i = 0; i < 2; i++)
 			{
 				var holder = new GameObject(i == 0 ? "model" : "model crossed");
-				holder.transform.SetParent(transform, false);
+				holder.transform.SetParent(go.transform, false);
 				holder.transform.localRotation = Quaternion.Euler(0f, 90f * i, 0f);
 				// The art runs back from its left edge: move it forward so the body's middle column is at the centre.
 				GameObject model = VoxelMesh.MakeObject("mesh", mesh, texture, null, holder.transform, 0);
 				model.transform.localPosition = new Vector3(0f, 0f, (Art.BodyX + 0.5f) * pixel);
 			}
-			Effects.Loop3D(gameObject, Effects.Hiss, 0.6f);
+			Effects.Loop3D(go, Effects.Hiss, 0.6f);
 		}
 
 		private void Update()
@@ -252,7 +262,8 @@ namespace HalfGripGrenade
 			all.Remove(this);
 			Destroy(gameObject);
 			Effects.Explosion(at);
-			Blast.InWorld(at);
+			GrenadeNet.SendBlast(NetId, at, false);
+			GrenadeNet.AsExplosion(() => Blast.InWorld(at));
 		}
 
 		private void OnDestroy()

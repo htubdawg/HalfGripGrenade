@@ -86,6 +86,7 @@ namespace HalfGripGrenade
 			Migrate();
 
 			GrenadeItem.Register(ctx);
+			GrenadeNet.Install(ctx);
 			ctx.OnSceneLoaded(scene => Effects.OnSceneLoaded());
 
 			fitter = new GameObject("GrenadeFitter") { hideFlags = HideFlags.HideAndDontSave };
@@ -102,6 +103,7 @@ namespace HalfGripGrenade
 			}
 			Fitter.Remove();
 			Thrown.DestroyAll();
+			GrenadeNet.Remove();
 		}
 
 		/// <summary>BepInEx keeps a saved value over a new default, so a changed default is moved on here, once. 1: the first layout.</summary>

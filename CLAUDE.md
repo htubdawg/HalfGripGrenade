@@ -32,6 +32,7 @@ starts by reading this file, `git log --oneline -10`, `git status`, and the file
 | `Blast.cs` | `InWorld` (falloff damage with `LapShield.Scale`, kill credit, shove, `DestructibleObject`s, self damage, shake) and `InCockpit` (damage, shake, flash/smoke `Bit`s, text) |
 | `Effects.cs` | Borrowed: enemy cars' `bigExplosionEffect` and `destroySound`, the SMG's `slidePullSounds` (pin); synthesized ping, hiss, bounce, boom; a small fallback explosion; the unlit sprite material |
 | `Bit.cs` | Unhandled cockpit pieces: the flying spoon, fuse smoke pixels, in-car flash and smoke |
+| `Net.cs` | Multiplayer. `GrenadeNet`: `ctx.Net` messages (our grenades in flight 15/s unreliable, blasts reliable, in-car blasts too), `AsExplosion` (sets Multiplayer's `Combat.Current` to Explosion by reflection around `Blast.InWorld`). `Ghost`: another player's grenade, model + hiss, follows reports, no damage |
 | `Art.cs` | Pixel art (managed only, `tools/preview` draws it): body, spoon, pin on one 22x20 canvas; flash; smoke colours |
 
 ## Design (from the owner's brief, 0.1.0)
@@ -59,6 +60,14 @@ starts by reading this file, `git log --oneline -10`, `git status`, and the file
 - The Grabber picks the hovered `InteriorCollider` with the highest `sortingLayer`; `IsPointOn` tolerance is `hitBoxExpand ×
   GrabTolerance (1.5)`. On release it moves `cursor` toward the grip point before calling `Release`, so the flick is sampled before.
 - `AreaBlast.Apply` exists (barrels, enemy rockets) but always hurts the player and skips `LapShield`; not used.
+- **Multiplayer** (4l3x4nd3r0/HalfGripMods `mods/Multiplayer` 1.1.0): every other player's car (and the host's AI cars on a client)
+  is a kinematic stand-in `EnemyController` + `RemoteCar` on this machine, in shared world coordinates. Multiplayer patches
+  `EnemyController.TakeDamage(float, bool)` (the 4-argument overload calls it): a `byPlayer` hit on a human stand-in is multiplied by
+  the host's PvP setting for `Combat.Current` (Gun / Explosion / anything else = Item) and sent (`Msg.Hit`) to its owner, who applies it
+  with `TakeCrashDamage`; AI stand-ins go to the host (`Msg.AiHit`). Stand-ins never die from damage, only by the owner's word; kills
+  credit through the game's own path. `LapShield.Scale` is bypassed for humans. So **damage is the thrower's machine's job**, nothing
+  extra to send. Multiplayer shows the RPG's rockets by hard-coded reflection (`Cues.cs`); other mods get `ctx.Net` (HalfGripTools
+  1.0.6 `Net.cs`, channel = mod id, everybody in a room has the same mods). The Grenade is the first mod to use `ctx.Net`.
 - Cars are about 13 units long; top speeds near 100 units/s. The cockpit is drawn by `InteriorCamera`; the world by `CarControllerNew.fpvCamera`.
 
 ## Checking changes
@@ -82,5 +91,10 @@ Repos side by side in `/home/user`: `HalfGripRefs`, `HalfGripTools`.
   the throw's feel (SpeedPerFlick 11, MinThrowSpeed 7, ranges in the preview table); Gravity 30 against the world's scale; whether the
   thrown grenade's sphere casts hit the road (layer mask) and its unlit voxel model shows; the borrowed explosion's size; that ammo
   boxes refill grenades; that the padlock sits on the grenades; the shop card's text and icon size.
-- **Not handled yet:** multiplayer (other players do not see grenades); "blood fed" (HpPerShot) leaves no grenades.
-- **Next step:** the owner tests 0.1.0 in a race and reports (screenshot of the dash, the log with VerboseLog on, how the throw feels).
+- **0.2.0** (branch `claude/vigilant-wozniak-8p3p78`, on top of 0.1.0): multiplayer, `Net.cs`. Compiles with the stub (Net/ModNet
+  added to it from HalfGripTools 1.0.6). **Not run in a room yet.** To check with two players: both see the other's grenade fly and
+  hiss (`player N threw one`), the blast where it lands (`went off`), a hit lands on the other's car with the host's ExplosionDamage
+  (Multiplayer logs `Hit by <name>: N damage`), a grenade in the thrower's car shows as a blast at their car for the others.
+- **Not handled yet:** a blast does not shove other players' real cars (their stand-ins are kinematic; only damage reaches them);
+  "blood fed" (HpPerShot) leaves no grenades. Each thrower's own config (Damage, radii) decides their blasts.
+- **Next step:** the owner tests in a race (0.1.0 single player, then 0.2.0 in a Multiplayer room) and reports (screenshot of the dash, the log with VerboseLog on, how the throw feels).
