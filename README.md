@@ -33,7 +33,8 @@ and a car it wrecks counts as your kill. It hurts your own car too if it goes of
 
 Works with the [Multiplayer](https://github.com/4l3x4nd3r0/HalfGripMods) mod (everybody in the room needs the Grenade, as with any
 mod there). The other players see your grenades fly, hear them hiss and see them go off. A grenade that catches another player's car
-hurts it by the host's **ExplosionDamage** setting, like a rocket; your own settings (`Grenade.Damage`, the radii) decide your blasts.
+hurts it by the host's **ExplosionDamage** setting, like a rocket, and shoves it as it shoves AI cars (not when the host has set
+explosions to no damage); your own settings (`Grenade.Damage`, the radii) decide your blasts.
 
 ## Install
 

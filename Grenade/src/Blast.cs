@@ -15,10 +15,13 @@ namespace HalfGripGrenade
 		private static readonly HashSet<Object> done = new HashSet<Object>();
 
 		/// <summary>How much of the full damage reaches something this far from the blast.</summary>
-		internal static float Share(float distance)
+		internal static float Share(float distance) => Share(distance, Mod.FullDamageRadius.Value, Mod.BlastRadius.Value);
+
+		/// <summary>The same for another player's blast, with that player's radii.</summary>
+		internal static float Share(float distance, float full, float reach)
 		{
-			float full = Mathf.Max(0f, Mod.FullDamageRadius.Value);
-			float reach = Mathf.Max(full + 0.01f, Mod.BlastRadius.Value);
+			full = Mathf.Max(0f, full);
+			reach = Mathf.Max(full + 0.01f, reach);
 			return distance <= full ? 1f : Mathf.Clamp01(1f - (distance - full) / (reach - full));
 		}
 
@@ -71,18 +74,46 @@ namespace HalfGripGrenade
 			Mod.Info($"Grenade: went off at {at}, {cars} car(s) in reach");
 		}
 
-		private static void Shove(Rigidbody body, Vector3 at, float reach, float share)
+		private static void Shove(Rigidbody body, Vector3 at, float reach, float share, bool player = false)
 		{
 			if (body == null || body.isKinematic || !done.Add(body))
 			{
 				return;
 			}
 			CarControllerNew car = body.GetComponentInParent<CarControllerNew>();
-			if (car != null && car.isPlayer)
+			if (car != null && car.isPlayer && !player)
 			{
 				return;
 			}
 			body.AddExplosionForce(body.mass * Knock * share * 2f, at, reach, 0.5f, ForceMode.Impulse);
+		}
+
+		/// <summary>
+		/// Another player's grenade went off at <paramref name="at"/>: the shove only (the damage came from the thrower's machine). Every
+		/// machine pushes the bodies it simulates itself, and Multiplayer sends where they went: this player's own car, the host's real
+		/// AI cars (on a client they are kinematic stand-ins and skipped, as are other players' cars), loose things.
+		/// </summary>
+		internal static void ShoveFromAfar(Vector3 at, float full, float reach)
+		{
+			reach = Mathf.Max(0.1f, reach);
+			done.Clear();
+			int pushed = 0;
+			foreach (Collider collider in Physics.OverlapSphere(at, reach, ~0, QueryTriggerInteraction.Ignore))
+			{
+				Rigidbody body = collider.attachedRigidbody;
+				if (body == null || body.isKinematic || done.Contains(body))
+				{
+					continue;
+				}
+				float share = Share(Vector3.Distance(collider.ClosestPoint(at), at), full, reach);
+				if (share > 0f)
+				{
+					Shove(body, at, reach, share, player: true);
+					pushed++;
+				}
+			}
+			done.Clear();
+			Mod.Info($"Grenade: another player's blast at {at} pushed {pushed} bod(ies) here");
 		}
 
 		internal static void Shake(Vector3 at)

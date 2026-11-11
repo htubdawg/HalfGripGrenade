@@ -27,7 +27,7 @@ namespace HalfGripGrenade
 	{
 		/// <summary>Our grenades in flight: count, then for each its id, place and speed.</summary>
 		private const byte MsgFlying = 1;
-		/// <summary>One went off: id (0 for one in the car), place, in the car or not.</summary>
+		/// <summary>One went off: id (0 for one in the car), place, in the car or not, the thrower's FullDamageRadius and BlastRadius.</summary>
 		private const byte MsgBlast = 2;
 
 		private const int MaxPerMessage = 8;
@@ -99,12 +99,14 @@ namespace HalfGripGrenade
 			{
 				return;
 			}
-			using var stream = new MemoryStream(18);
+			using var stream = new MemoryStream(26);
 			using var w = new BinaryWriter(stream);
 			w.Write(MsgBlast);
 			w.Write(id);
 			Vec(w, at);
 			w.Write(inCar);
+			w.Write(Mod.FullDamageRadius.Value);
+			w.Write(Mod.BlastRadius.Value);
 			w.Flush();
 			net.Send(stream.ToArray(), Net.Everyone, reliable: true);
 		}
@@ -137,9 +139,16 @@ namespace HalfGripGrenade
 						int which = r.ReadInt32();
 						Vector3 at = Vec(r);
 						bool inCar = r.ReadBoolean();
+						float full = r.ReadSingle();
+						float reach = r.ReadSingle();
 						if (Sane(at))
 						{
 							Ghost.GoOff(from, which, at, inCar);
+							// A blast in the thrower's car pushes nobody else; out in the world it shoves what this machine simulates.
+							if (!inCar && ExplosionsHurt() && !float.IsNaN(full + reach) && reach > 0f && reach < 1000f)
+							{
+								Blast.ShoveFromAfar(at, full, reach);
+							}
 						}
 						break;
 				}
@@ -201,6 +210,27 @@ namespace HalfGripGrenade
 			}
 		}
 
+		private static FieldInfo roomRace;
+		private static FieldInfo raceExplosion;
+
+		/// <summary>
+		/// False when the host has set explosions to do no damage to players (Multiplayer's <c>Room.Race.Explosion</c> is 0): then other
+		/// players' grenades do not shove this player's car either. True if it cannot be read.
+		/// </summary>
+		private static bool ExplosionsHurt()
+		{
+			Look();
+			try
+			{
+				object race = roomRace?.GetValue(null);
+				return race == null || raceExplosion == null || (float)raceExplosion.GetValue(race) > 0f;
+			}
+			catch (Exception)
+			{
+				return true;
+			}
+		}
+
 		private static void Look()
 		{
 			if (looked)
@@ -222,6 +252,13 @@ namespace HalfGripGrenade
 				if (combat == null)
 				{
 					return;
+				}
+				const BindingFlags any = BindingFlags.Static | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+				roomRace = combat.Assembly.GetType("Multiplayer.Room", false)?.GetField("Race", any);
+				raceExplosion = roomRace?.FieldType.GetField("Explosion", any);
+				if (raceExplosion != null && raceExplosion.FieldType != typeof(float))
+				{
+					raceExplosion = null;
 				}
 				FieldInfo field = combat.GetField("Current", BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
 				if (field == null || !field.FieldType.IsEnum || !Enum.IsDefined(field.FieldType, "Explosion"))
