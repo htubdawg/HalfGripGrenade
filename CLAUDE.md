@@ -69,6 +69,13 @@ starts by reading this file, `git log --oneline -10`, `git status`, and the file
   machine (a message) and the movement replicates. `LapShield.Scale` is bypassed for humans. So **damage is the thrower's machine's job**, nothing
   extra to send. Multiplayer shows the RPG's rockets by hard-coded reflection (`Cues.cs`); other mods get `ctx.Net` (HalfGripTools
   1.0.6 `Net.cs`, channel = mod id, everybody in a room has the same mods). The Grenade is the first mod to use `ctx.Net`.
+- **Joining a room** (Multiplayer `Checksums.cs`): the room compares one hash over protocol, game version, HalfGripTools version and,
+  per mod, id + `mod.json` version + SHA256 of **every file in the mod folder** (path and bytes; only `lang/` skipped; CR stripped
+  in .cs/.json/.txt/.md). A comment change, a stray file (Thumbs.db, desktop.ini, a backup, a whole repo extracted) or a different
+  commit with the same version number all refuse the join: "Different version or files: grenade". Each player's log has
+  `Mod checksum ... grenade@<version>:<hash8>`. Nothing at runtime writes into the folder (compiled DLLs and installer notes go to
+  caches). Expected hash8: d889711 0.1.0 `405fa4ad`; bfc0c56 0.2.0 `0daecd4f`; 0a3a0bc 0.2.0 `95d4fbf5`; 02e1c12 0.2.0 `5ed541ed`.
+  So: **bump `mod.json` version on every push testers may install**, and point them all at one link.
 - Cars are about 13 units long; top speeds near 100 units/s. The cockpit is drawn by `InteriorCamera`; the world by `CarControllerNew.fpvCamera`.
 
 ## Checking changes
